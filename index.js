@@ -25,10 +25,13 @@ async function run() {
     const userCollection = client
       .db("polyglotPioneersAcademy")
       .collection("users");
+    const classCollection = client
+      .db("polyglotPioneersAcademy")
+      .collection("classes");
 
     // user collection api
     app.get("/users", async (req, res) => {
-      const result = await userCollection.find().toArray;
+      const result = await userCollection.find().toArray();
       res.send(result);
     });
     app.post("/users", async (req, res) => {
@@ -40,8 +43,13 @@ async function run() {
       if (existingUser) {
         return res.send({ message: "user already exists" });
       }
-
       const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    // classes apis
+    app.get("/classes", async (req, res) => {
+      const result = await classCollection.find().toArray();
       res.send(result);
     });
 
