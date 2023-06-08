@@ -28,6 +28,9 @@ async function run() {
     const classCollection = client
       .db("polyglotPioneersAcademy")
       .collection("classes");
+    const instructorCollection = client
+      .db("polyglotPioneersAcademy")
+      .collection("classes");
 
     // user collection api
     app.get("/users", async (req, res) => {
@@ -50,6 +53,11 @@ async function run() {
     // classes apis
     app.get("/classes", async (req, res) => {
       const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+    //instructors api
+    app.get("/instructors", async (req, res) => {
+      const result = await instructorCollection.find().toArray();
       res.send(result);
     });
 
