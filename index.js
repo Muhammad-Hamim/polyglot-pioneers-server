@@ -30,7 +30,7 @@ async function run() {
       .collection("classes");
     const instructorCollection = client
       .db("polyglotPioneersAcademy")
-      .collection("classes");
+      .collection("instructors");
 
     // user collection api
     app.get("/users", async (req, res) => {
