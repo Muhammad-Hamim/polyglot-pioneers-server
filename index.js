@@ -32,6 +32,9 @@ async function run() {
     const instructorCollection = client
       .db("polyglotPioneersAcademy")
       .collection("instructors");
+    const classFeedbackCollection = client
+      .db("polyglotPioneersAcademy")
+      .collection("classFeedback");
 
     // // jwt token varify
     // app.post("/jwt", (req, res) => {
@@ -48,7 +51,6 @@ async function run() {
     });
     app.post("/users", async (req, res) => {
       const user = req.body;
-
       const query = { email: user.email };
       const existingUser = await userCollection.findOne(query);
 
@@ -88,21 +90,77 @@ async function run() {
     });
 
     // classes apis
-    app.get("/classes", async (req, res) => {
-      const result = await classCollection.find().toArray();
-      res.send(result);
+    app.get("/classes/", async (req, res) => {
+      const instructorEmail = req.query.instructorEmail;
+      try {
+        let result;
+
+        if (instructorEmail) {
+          const query = { instructor_email: instructorEmail };
+          result = await classCollection.find(query).toArray();
+        } else {
+          result = await classCollection.find().toArray();
+        }
+        res.send(result);
+      } catch (error) {
+        console.error("Error retrieving classes:", error);
+        res.status(500).send({ message: "Failed to retrieve classes" });
+      }
     });
-    app.patch("/classes/pending/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          status: "pending",
-        },
-      };
-      const result = await classCollection.updateOne(filter, updateDoc);
-      res.send(result);
+    app.get("/classes/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        result = await classCollection.findOne(filter);
+        res.send(result);
+      } catch (error) {
+        console.error("Error retrieving classes:", error);
+        res.status(500).send({ message: "Failed to retrieve classes" });
+      }
     });
+    app.patch("/classes/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updatedInfo = req.body;
+        const filter = { _id: new ObjectId(id) };
+        console.log(updatedInfo);
+        const updateDoc = {
+          $set: {
+            title: updatedInfo.title,
+            image: updatedInfo.image,
+            price: updatedInfo.price,
+            available_seats: updatedInfo.available_seats,
+            description: updatedInfo.description,
+            status: updatedInfo.status,
+          },
+        };
+        result = await classCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      } catch (error) {
+        console.error("Error retrieving classes:", error);
+        res.status(500).send({ message: "Failed to retrieve classes" });
+      }
+    });
+
+    // app.get("/classes/instructor", async (req, res) => {
+    //   const email = req.query.instructorEmail;
+    //   console.log(email);
+    //   const filter = { instructor_email: email };
+    //   const result = await classCollection.find(filter).toArray;
+    //   res.send(result);
+    // });
+
+    // app.patch("/classes/pending/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const filter = { _id: new ObjectId(id) };
+    //   const updateDoc = {
+    //     $set: {
+    //       status: "pending",
+    //     },
+    //   };
+    //   const result = await classCollection.updateOne(filter, updateDoc);
+    //   res.send(result);
+    // });
     app.patch("/classes/approve/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -125,6 +183,25 @@ async function run() {
       const result = await classCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
+    app.patch("/classes/feedback/:id", async (req, res) => {
+      const id = req.params.id;
+      const feedback = req.body.feedback;
+      console.log(feedback);
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          feedback: feedback,
+        },
+      };
+      const result = await classCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // app.post("/classes/feedback", async (req, res) => {
+    //   const feedback = req.body.feedback;
+    //   const result = await classFeedbackCollection.insertOne(feedback);
+    //   res.send(result);
+    // });
     //instructors api
     app.get("/instructors", async (req, res) => {
       const result = await instructorCollection.find().toArray();
