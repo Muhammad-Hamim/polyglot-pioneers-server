@@ -36,6 +36,15 @@ async function run() {
       .db("polyglotPioneersAcademy")
       .collection("selectedClass");
 
+    //jwt api
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_ACCESS_TOKEN, {
+        expiresIn: "10h",
+      });
+      res.send({ token });
+    });
+
     // user collection api
     app.get("/users", async (req, res) => {
       const result = await userCollection.find().toArray();
@@ -190,7 +199,7 @@ async function run() {
     });
     app.delete("/selectedclass/:id", async (req, res) => {
       const id = req.params.id;
-      const filter = { _id: new ObjectId(id)};
+      const filter = { _id: new ObjectId(id) };
       const result = await selectedClassCollection.deleteOne(filter);
       res.send(result);
     });
