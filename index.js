@@ -22,7 +22,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     const userCollection = client
       .db("polyglotPioneersAcademy")
       .collection("users");
@@ -36,7 +36,6 @@ async function run() {
       .db("polyglotPioneersAcademy")
       .collection("selectedClass");
 
-   
     // user collection api
     app.get("/users", async (req, res) => {
       const result = await userCollection.find().toArray();
@@ -123,7 +122,6 @@ async function run() {
         const id = req.params.id;
         const updatedInfo = req.body;
         const filter = { _id: new ObjectId(id) };
-        console.log(updatedInfo);
         const updateDoc = {
           $set: {
             title: updatedInfo.title,
@@ -167,7 +165,6 @@ async function run() {
     app.patch("/classes/feedback/:id", async (req, res) => {
       const id = req.params.id;
       const feedback = req.body.feedback;
-      console.log(feedback);
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
@@ -178,6 +175,26 @@ async function run() {
       res.send(result);
     });
 
+    //student selected class api
+    app.get("/selectedclass", async (req, res) => {
+      const studentEmail = req.query.studentEmail;
+      const query = { stuEmail: studentEmail };
+      const result = await selectedClassCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.post("/selectedclass", async (req, res) => {
+      const selectedClass = req.body;
+      const result = await selectedClassCollection.insertOne(selectedClass);
+      res.send(result);
+    });
+    app.delete("/selectedclass/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id)};
+      const result = await selectedClassCollection.deleteOne(filter);
+      res.send(result);
+    });
+
     //instructors api
     app.get("/instructors", async (req, res) => {
       const result = await instructorCollection.find().toArray();
@@ -185,7 +202,7 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
