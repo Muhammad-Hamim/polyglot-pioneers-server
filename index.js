@@ -32,18 +32,11 @@ async function run() {
     const instructorCollection = client
       .db("polyglotPioneersAcademy")
       .collection("instructors");
-    const classFeedbackCollection = client
+    const selectedClassCollection = client
       .db("polyglotPioneersAcademy")
-      .collection("classFeedback");
+      .collection("selectedClass");
 
-    // // jwt token varify
-    // app.post("/jwt", (req, res) => {
-    //   const user = req.body;
-    //   const token = jwt.sign(user, process.env.JWT_ACCESS_TOKEN, {
-    //     expiresIn: "10h",
-    //   });
-    //   res.send({ token });
-    // });
+   
     // user collection api
     app.get("/users", async (req, res) => {
       const result = await userCollection.find().toArray();
@@ -90,7 +83,7 @@ async function run() {
     });
 
     // classes apis
-    app.get("/classes/", async (req, res) => {
+    app.get("/classes", async (req, res) => {
       const instructorEmail = req.query.instructorEmail;
       try {
         let result;
@@ -118,6 +111,13 @@ async function run() {
         res.status(500).send({ message: "Failed to retrieve classes" });
       }
     });
+
+    app.post("/classes", async (req, res) => {
+      const classInfo = req.body;
+      const result = await classCollection.insertOne(classInfo);
+      res.send(result);
+    });
+
     app.patch("/classes/:id", async (req, res) => {
       try {
         const id = req.params.id;
@@ -142,25 +142,6 @@ async function run() {
       }
     });
 
-    // app.get("/classes/instructor", async (req, res) => {
-    //   const email = req.query.instructorEmail;
-    //   console.log(email);
-    //   const filter = { instructor_email: email };
-    //   const result = await classCollection.find(filter).toArray;
-    //   res.send(result);
-    // });
-
-    // app.patch("/classes/pending/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const filter = { _id: new ObjectId(id) };
-    //   const updateDoc = {
-    //     $set: {
-    //       status: "pending",
-    //     },
-    //   };
-    //   const result = await classCollection.updateOne(filter, updateDoc);
-    //   res.send(result);
-    // });
     app.patch("/classes/approve/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -197,11 +178,6 @@ async function run() {
       res.send(result);
     });
 
-    // app.post("/classes/feedback", async (req, res) => {
-    //   const feedback = req.body.feedback;
-    //   const result = await classFeedbackCollection.insertOne(feedback);
-    //   res.send(result);
-    // });
     //instructors api
     app.get("/instructors", async (req, res) => {
       const result = await instructorCollection.find().toArray();
