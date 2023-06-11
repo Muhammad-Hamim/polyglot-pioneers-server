@@ -8,6 +8,22 @@ const port = process.env.PORT || 3000;
 // middleware
 app.use(cors());
 app.use(express.json());
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    res.status(401).send({ error: true, message: "unauthorized access" });
+  }
+  //bearer token
+  const token = authorization.split(" ")[1];
+
+  jwt.verify(token, process.env.JWT_ACCESS_TOKEN, (error, decoded) => {
+    if (error) {
+      res.status(401).send({ error: true, message: "unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
 
 const uri = `mongodb+srv://${process.env.PPA_USER}:${process.env.PPA_PASS}@cluster0.xmeadqe.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -39,6 +55,7 @@ async function run() {
     //jwt api
     app.post("/jwt", (req, res) => {
       const user = req.body;
+      console.log(user);
       const token = jwt.sign(user, process.env.JWT_ACCESS_TOKEN, {
         expiresIn: "10h",
       });
@@ -46,12 +63,18 @@ async function run() {
     });
 
     // user collection api
-    app.get("/users", async (req, res) => {
-      const result = await userCollection.find().toArray();
-      res.send(result);
+    app.get("/users", verifyJWT, async (req, res) => {
+      try {
+        const result = await userCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error retrieving users:", error);
+        res.status(500).send({ message: "Failed to retrieve users" });
+      }
     });
     app.post("/users", async (req, res) => {
       const user = req.body;
+
       const query = { email: user.email };
       const existingUser = await userCollection.findOne(query);
 
@@ -61,6 +84,29 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+    app.get("/users/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      if (req.decoded.email !== email) {
+        return res.send({ admin: false });
+      }
+      const user = await userCollection.findOne(query);
+      const result = { admin: user?.role === "Admin" };
+      console.log(result);
+      res.send(result);
+    });
+
+    app.get("/users/instructors/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      if (req.decoded.email !== email) {
+        return res.send({ instructor: false });
+      }
+      const user = await userCollection.findOne(query);
+      const result = { instructor: user?.role === "Instructor" };
+      res.send(result);
+    });
+
     app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -211,7 +257,7 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
+    await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
