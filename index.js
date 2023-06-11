@@ -11,14 +11,18 @@ app.use(express.json());
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
   if (!authorization) {
-    res.status(401).send({ error: true, message: "unauthorized access" });
+    return res
+      .status(401)
+      .send({ error: true, message: "unauthorized access" });
   }
   //bearer token
   const token = authorization.split(" ")[1];
 
   jwt.verify(token, process.env.JWT_ACCESS_TOKEN, (error, decoded) => {
     if (error) {
-      res.status(401).send({ error: true, message: "unauthorized access" });
+      return res
+        .status(401)
+        .send({ error: true, message: "unauthorized access" });
     }
     req.decoded = decoded;
     next();
@@ -58,7 +62,7 @@ async function run() {
       const token = jwt.sign(user, process.env.JWT_ACCESS_TOKEN, {
         expiresIn: "10h",
       });
-      res.send({ token });
+      return res.send({ token });
     });
 
     const verifyAdmin = async (req, res, next) => {
@@ -67,7 +71,9 @@ async function run() {
       const user = await userCollection.findOne(query);
       console.log(user);
       if (user?.role !== "Admin") {
-        res.status(403).send({ error: true, message: "forbidden access" });
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
       }
       next();
     };
@@ -77,7 +83,9 @@ async function run() {
       const user = await userCollection.findOne(query);
       console.log(user);
       if (user?.role !== "Instructor") {
-        res.status(403).send({ error: true, message: "forbidden access" });
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
       }
       next();
     };
@@ -86,10 +94,10 @@ async function run() {
     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const result = await userCollection.find().toArray();
-        res.send(result);
+        return res.send(result);
       } catch (error) {
         console.error("Error retrieving users:", error);
-        res.status(500).send({ message: "Failed to retrieve users" });
+        return res.status(500).send({ message: "Failed to retrieve users" });
       }
     });
     app.post("/users", async (req, res) => {
@@ -102,7 +110,7 @@ async function run() {
         return res.send({ message: "user already exists" });
       }
       const result = await userCollection.insertOne(user);
-      res.send(result);
+      return res.send(result);
     });
     app.get("/users/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
@@ -112,7 +120,7 @@ async function run() {
       }
       const user = await userCollection.findOne(query);
       const result = { admin: user?.role === "Admin" };
-      res.send(result);
+      return res.send(result);
     });
 
     app.get("/users/instructors/:email", verifyJWT, async (req, res) => {
@@ -123,7 +131,7 @@ async function run() {
       }
       const user = await userCollection.findOne(query);
       const result = { instructor: user?.role === "Instructor" };
-      res.send(result);
+      return res.send(result);
     });
 
     app.patch("/users/admin/:id", async (req, res) => {
@@ -135,7 +143,7 @@ async function run() {
         },
       };
       const result = await userCollection.updateOne(filter, updateDoc);
-      res.send(result);
+      return res.send(result);
     });
     app.patch("/users/instructor/:id", async (req, res) => {
       const id = req.params.id;
@@ -146,19 +154,19 @@ async function run() {
         },
       };
       const result = await userCollection.updateOne(filter, updateDoc);
-      res.send(result);
+      return res.send(result);
     });
     app.delete("/users/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await userCollection.deleteOne(filter);
-      res.send(result);
+      return res.send(result);
     });
 
     // classes apis
     app.get("/classes/home", async (req, res) => {
       const result = await classCollection.find().toArray();
-      res.send(result);
+      return res.send(result);
     });
     app.get("/classes", verifyJWT, verifyInstructor, async (req, res) => {
       const instructorEmail = req.query.instructorEmail;
@@ -171,10 +179,10 @@ async function run() {
         } else {
           result = await classCollection.find().toArray();
         }
-        res.send(result);
+        return res.send(result);
       } catch (error) {
         console.error("Error retrieving classes:", error);
-        res.status(500).send({ message: "Failed to retrieve classes" });
+        return res.status(500).send({ message: "Failed to retrieve classes" });
       }
     });
     app.get("/classes/:id", verifyJWT, verifyInstructor, async (req, res) => {
@@ -182,17 +190,17 @@ async function run() {
         const id = req.params.id;
         const filter = { _id: new ObjectId(id) };
         result = await classCollection.findOne(filter);
-        res.send(result);
+        return res.send(result);
       } catch (error) {
         console.error("Error retrieving classes:", error);
-        res.status(500).send({ message: "Failed to retrieve classes" });
+        return res.status(500).send({ message: "Failed to retrieve classes" });
       }
     });
 
     app.post("/classes", async (req, res) => {
       const classInfo = req.body;
       const result = await classCollection.insertOne(classInfo);
-      res.send(result);
+      return res.send(result);
     });
 
     app.patch("/classes/:id", async (req, res) => {
@@ -211,10 +219,10 @@ async function run() {
           },
         };
         result = await classCollection.updateOne(filter, updateDoc);
-        res.send(result);
+        return res.send(result);
       } catch (error) {
         console.error("Error retrieving classes:", error);
-        res.status(500).send({ message: "Failed to retrieve classes" });
+        return res.status(500).send({ message: "Failed to retrieve classes" });
       }
     });
 
@@ -227,7 +235,7 @@ async function run() {
         },
       };
       const result = await classCollection.updateOne(filter, updateDoc);
-      res.send(result);
+      return res.send(result);
     });
     app.patch("/classes/deny/:id", async (req, res) => {
       const id = req.params.id;
@@ -238,7 +246,7 @@ async function run() {
         },
       };
       const result = await classCollection.updateOne(filter, updateDoc);
-      res.send(result);
+      return res.send(result);
     });
     app.patch("/classes/feedback/:id", async (req, res) => {
       const id = req.params.id;
@@ -250,7 +258,7 @@ async function run() {
         },
       };
       const result = await classCollection.updateOne(filter, updateDoc);
-      res.send(result);
+      return res.send(result);
     });
 
     //student selected class api
@@ -258,29 +266,29 @@ async function run() {
       const studentEmail = req.query.studentEmail;
       const query = { stuEmail: studentEmail };
       const result = await selectedClassCollection.find(query).toArray();
-      res.send(result);
+      return res.send(result);
     });
 
     app.post("/selectedclass", async (req, res) => {
       const selectedClass = req.body;
       const result = await selectedClassCollection.insertOne(selectedClass);
-      res.send(result);
+      return res.send(result);
     });
     app.delete("/selectedclass/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await selectedClassCollection.deleteOne(filter);
-      res.send(result);
+      return res.send(result);
     });
 
     //instructors api
     app.get("/instructors", async (req, res) => {
       const result = await instructorCollection.find().toArray();
-      res.send(result);
+      return res.send(result);
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
