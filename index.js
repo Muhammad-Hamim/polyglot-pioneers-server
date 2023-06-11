@@ -55,15 +55,35 @@ async function run() {
     //jwt api
     app.post("/jwt", (req, res) => {
       const user = req.body;
-      console.log(user);
       const token = jwt.sign(user, process.env.JWT_ACCESS_TOKEN, {
         expiresIn: "10h",
       });
       res.send({ token });
     });
 
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      console.log(user);
+      if (user?.role !== "Admin") {
+        res.status(403).send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      console.log(user);
+      if (user?.role !== "Instructor") {
+        res.status(403).send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
     // user collection api
-    app.get("/users", verifyJWT, async (req, res) => {
+    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const result = await userCollection.find().toArray();
         res.send(result);
@@ -92,7 +112,6 @@ async function run() {
       }
       const user = await userCollection.findOne(query);
       const result = { admin: user?.role === "Admin" };
-      console.log(result);
       res.send(result);
     });
 
@@ -137,11 +156,15 @@ async function run() {
     });
 
     // classes apis
-    app.get("/classes", async (req, res) => {
+    app.get("/classes/home", async (req, res) => {
+      const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+    app.get("/classes", verifyJWT, verifyInstructor, async (req, res) => {
       const instructorEmail = req.query.instructorEmail;
       try {
         let result;
-
+        console.log(instructorEmail);
         if (instructorEmail) {
           const query = { instructor_email: instructorEmail };
           result = await classCollection.find(query).toArray();
@@ -154,7 +177,7 @@ async function run() {
         res.status(500).send({ message: "Failed to retrieve classes" });
       }
     });
-    app.get("/classes/:id", async (req, res) => {
+    app.get("/classes/:id", verifyJWT, verifyInstructor, async (req, res) => {
       try {
         const id = req.params.id;
         const filter = { _id: new ObjectId(id) };
