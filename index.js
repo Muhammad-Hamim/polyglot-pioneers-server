@@ -136,7 +136,7 @@ async function run() {
       return res.send(result);
     });
 
-    app.patch("/users/admin/:id", async (req, res) => {
+    app.patch("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -147,18 +147,23 @@ async function run() {
       const result = await userCollection.updateOne(filter, updateDoc);
       return res.send(result);
     });
-    app.patch("/users/instructor/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          role: "Instructor",
-        },
-      };
-      const result = await userCollection.updateOne(filter, updateDoc);
-      return res.send(result);
-    });
-    app.delete("/users/:id", async (req, res) => {
+    app.patch(
+      "/users/instructor/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            role: "Instructor",
+          },
+        };
+        const result = await userCollection.updateOne(filter, updateDoc);
+        return res.send(result);
+      }
+    );
+    app.delete("/users/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await userCollection.deleteOne(filter);
@@ -219,13 +224,13 @@ async function run() {
       }
     );
 
-    app.post("/classes", async (req, res) => {
+    app.post("/classes", verifyJWT, verifyInstructor, async (req, res) => {
       const classInfo = req.body;
       const result = await classCollection.insertOne(classInfo);
       return res.send(result);
     });
 
-    app.patch("/classes/:id", async (req, res) => {
+    app.patch("/classes/:id", verifyJWT, verifyInstructor, async (req, res) => {
       try {
         const id = req.params.id;
         const updatedInfo = req.body;
@@ -248,18 +253,23 @@ async function run() {
       }
     });
 
-    app.patch("/classes/approve/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          status: "approve",
-        },
-      };
-      const result = await classCollection.updateOne(filter, updateDoc);
-      return res.send(result);
-    });
-    app.patch("/classes/deny/:id", async (req, res) => {
+    app.patch(
+      "/classes/approve/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            status: "approve",
+          },
+        };
+        const result = await classCollection.updateOne(filter, updateDoc);
+        return res.send(result);
+      }
+    );
+    app.patch("/classes/deny/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -270,18 +280,23 @@ async function run() {
       const result = await classCollection.updateOne(filter, updateDoc);
       return res.send(result);
     });
-    app.patch("/classes/feedback/:id", async (req, res) => {
-      const id = req.params.id;
-      const feedback = req.body.feedback;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          feedback: feedback,
-        },
-      };
-      const result = await classCollection.updateOne(filter, updateDoc);
-      return res.send(result);
-    });
+    app.patch(
+      "/classes/feedback/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const feedback = req.body.feedback;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            feedback: feedback,
+          },
+        };
+        const result = await classCollection.updateOne(filter, updateDoc);
+        return res.send(result);
+      }
+    );
 
     //student selected class api
     app.get("/selectedclass", verifyJWT, async (req, res) => {
@@ -291,12 +306,12 @@ async function run() {
       return res.send(result);
     });
 
-    app.post("/selectedclass", async (req, res) => {
+    app.post("/selectedclass", verifyJWT, async (req, res) => {
       const selectedClass = req.body;
       const result = await selectedClassCollection.insertOne(selectedClass);
       return res.send(result);
     });
-    app.delete("/selectedclass/:id", async (req, res) => {
+    app.delete("/selectedclass/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await selectedClassCollection.deleteOne(filter);
@@ -345,6 +360,21 @@ async function run() {
       return res.send(result);
     });
 
+    app.get("/enrolledclass", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const filter = { email: email };
+      console.log(email);
+      const paidClass = await paymentCollection.find(filter).toArray();
+      const classIdArray = paidClass.reduce(
+        (acc, obj) => acc.concat(obj.classId),
+        []
+      );
+      const query = {
+        _id: { $in: classIdArray.map((id) => new ObjectId(id)) },
+      };
+      const result = await classCollection.find(query).toArray();
+      return res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
