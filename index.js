@@ -338,9 +338,13 @@ async function run() {
     app.get("/paymenthistory", verifyJWT, async (req, res) => {
       const email = req.query.email;
       const filter = { email: email };
-      const result = await paymentCollection.find(filter).toArray();
+      const result = await paymentCollection
+        .find(filter)
+        .sort({ date: -1 }) // Sort by date field in descending order
+        .toArray();
       return res.send(result);
     });
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
