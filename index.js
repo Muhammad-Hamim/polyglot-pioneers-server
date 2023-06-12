@@ -3,6 +3,7 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.PAYMENT_GATEWAY_KEY);
 const app = express();
 const port = process.env.PORT || 3000;
 // middleware
@@ -55,6 +56,9 @@ async function run() {
     const selectedClassCollection = client
       .db("polyglotPioneersAcademy")
       .collection("selectedClass");
+    const paymentCollection = client
+      .db("polyglotPioneersAcademy")
+      .collection("payments");
 
     //jwt api
     app.post("/jwt", (req, res) => {
@@ -69,7 +73,6 @@ async function run() {
       const email = req.decoded.email;
       const query = { email: email };
       const user = await userCollection.findOne(query);
-      console.log(user);
       if (user?.role !== "Admin") {
         return res
           .status(403)
@@ -81,7 +84,6 @@ async function run() {
       const email = req.decoded.email;
       const query = { email: email };
       const user = await userCollection.findOne(query);
-      console.log(user);
       if (user?.role !== "Instructor") {
         return res
           .status(403)
@@ -172,7 +174,6 @@ async function run() {
       const instructorEmail = req.query.instructorEmail;
       try {
         let result;
-        console.log(instructorEmail);
         if (instructorEmail) {
           const query = { instructor_email: instructorEmail };
           result = await classCollection.find(query).toArray();
@@ -262,7 +263,7 @@ async function run() {
     });
 
     //student selected class api
-    app.get("/selectedclass", async (req, res) => {
+    app.get("/selectedclass", verifyJWT, async (req, res) => {
       const studentEmail = req.query.studentEmail;
       const query = { stuEmail: studentEmail };
       const result = await selectedClassCollection.find(query).toArray();
@@ -284,6 +285,39 @@ async function run() {
     //instructors api
     app.get("/instructors", async (req, res) => {
       const result = await instructorCollection.find().toArray();
+      return res.send(result);
+    });
+
+    //create payment intents
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      return res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+    // payment related api
+    app.post("/payments", verifyJWT, async (req, res) => {
+      const payment = req.body;
+      const insertedResult = await paymentCollection.insertOne(payment);
+      const query = {
+        _id: { $in: payment.selectedClassId.map((id) => new ObjectId(id)) },
+      };
+      const deletedResult = await selectedClassCollection.deleteMany(query);
+      return res.send({ insertedResult, deletedResult });
+    });
+
+    // payment history
+    app.get("/paymenthistory", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const filter = { email: email };
+      const result = await paymentCollection.find(filter).toArray();
       return res.send(result);
     });
 
