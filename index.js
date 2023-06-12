@@ -170,6 +170,20 @@ async function run() {
       const result = await classCollection.find().toArray();
       return res.send(result);
     });
+    app.get(
+      "/classes/manageclasses",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const result = await classCollection.find().toArray();
+          return res.send(result);
+        } catch (error) {
+          console.error("Error retrieving users:", error);
+          return res.status(500).send({ message: "Failed to retrieve users" });
+        }
+      }
+    );
     app.get("/classes", verifyJWT, verifyInstructor, async (req, res) => {
       const instructorEmail = req.query.instructorEmail;
       try {
@@ -186,17 +200,24 @@ async function run() {
         return res.status(500).send({ message: "Failed to retrieve classes" });
       }
     });
-    app.get("/classes/:id", verifyJWT, verifyInstructor, async (req, res) => {
-      try {
-        const id = req.params.id;
-        const filter = { _id: new ObjectId(id) };
-        result = await classCollection.findOne(filter);
-        return res.send(result);
-      } catch (error) {
-        console.error("Error retrieving classes:", error);
-        return res.status(500).send({ message: "Failed to retrieve classes" });
+    app.get(
+      "/classes/:id",
+      verifyJWT,
+      verifyInstructor || verifyAdmin,
+      async (req, res) => {
+        try {
+          const id = req.params.id;
+          const filter = { _id: new ObjectId(id) };
+          result = await classCollection.findOne(filter);
+          return res.send(result);
+        } catch (error) {
+          console.error("Error retrieving classes:", error);
+          return res
+            .status(500)
+            .send({ message: "Failed to retrieve classes" });
+        }
       }
-    });
+    );
 
     app.post("/classes", async (req, res) => {
       const classInfo = req.body;
